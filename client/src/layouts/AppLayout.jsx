@@ -34,7 +34,8 @@ export const AppLayout = () => {
   const adminNav = [
     { to: '/dashboard', label: 'Admin Dashboard', icon: LayoutDashboard },
     { to: '/pos', label: 'POS Billing', icon: ShoppingCart },
-    { to: '/products', label: 'Products', icon: Package, badge: 'Ph. 2' },
+    { to: '/products', label: 'Products & Catalog', icon: Package },
+    { to: '/categories', label: 'Categories', icon: Layers },
     { to: '/inventory', label: 'Inventory Ledger', icon: ClipboardList, badge: 'Ph. 3' },
     { to: '/customers', label: 'Customers & Udhaar', icon: Users, badge: 'Ph. 5' },
     { to: '/purchases', label: 'Purchases & Suppliers', icon: Truck, badge: 'Ph. 5' },
@@ -44,6 +45,7 @@ export const AppLayout = () => {
 
   const staffNav = [
     { to: '/pos', label: 'POS Billing', icon: ShoppingCart },
+    { to: '/products', label: 'Product Catalog', icon: Package },
     { to: '/customers', label: 'Customers & Udhaar', icon: Users, badge: 'Ph. 5' },
     { to: '/sales-history', label: 'Billing History', icon: ClipboardList, badge: 'Ph. 4' },
   ];

@@ -9,6 +9,8 @@ import mongoose from 'mongoose';
 import { connectDB } from './config/db.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/authRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
+import productRoutes from './routes/productRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -66,6 +68,8 @@ app.get('/api/health', (req, res) => {
 // Mount Routes
 app.use('/api/v1/auth/login', authLimiter);
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/categories', categoryRoutes);
+app.use('/api/v1/products', productRoutes);
 
 // Catch-all 404 handler for undefined API routes
 app.use('/api', (req, res) => {

@@ -139,30 +139,40 @@ export const LoginPage = () => {
           </button>
         </form>
 
-        {/* Quick Testing Accounts Helper */}
-        <div className="mt-6 pt-5 border-t border-slate-100">
-          <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2 text-center">
-            Quick Fill Test Accounts (Pre-Seeded)
+        {/* Development Environment Account Helper */}
+        {import.meta.env.DEV && (
+          <div className="mt-6 pt-5 border-t border-slate-100">
+            <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2 text-center">
+              Dev Helper: Quick Fill Username
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setUsername('admin');
+                  setPassword('adminpassword123');
+                  setErrorMessage('');
+                }}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold border border-slate-200 transition"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                Fill Owner (admin)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setUsername('staff');
+                  setPassword('staffpassword123');
+                  setErrorMessage('');
+                }}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold border border-slate-200 transition"
+              >
+                <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+                Fill Staff (staff)
+              </button>
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => fillQuickCredentials('admin', 'adminpassword123')}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg text-xs font-semibold border border-emerald-200 transition"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              Admin (Owner)
-            </button>
-            <button
-              type="button"
-              onClick={() => fillQuickCredentials('staff', 'staffpassword123')}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-lg text-xs font-semibold border border-blue-200 transition"
-            >
-              <UserCheck className="w-3.5 h-3.5 text-blue-600" />
-              Staff (Counter)
-            </button>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Safety Notice Footer */}

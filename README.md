@@ -138,10 +138,13 @@ npm run dev
 Visit the application in your browser at: **`http://localhost:5173`**
 
 ### 5. Running the Automated Verification Tests
-To run the automated test suite verifying all 18 security, database, and role assertions:
 ```bash
 cd server
+# Run Phase 1 Foundation tests (18 assertions)
 node test-phase1.js
+
+# Run Phase 2 Product & Category tests (21 assertions)
+node test-phase2.js
 ```
 
 ---
@@ -170,12 +173,22 @@ node test-phase1.js
   - JWT Authentication, bcrypt password hashing, RBAC middleware.
   - Initial database seeder for default Admin and Staff accounts.
   - React + Vite + Tailwind CSS v4 frontend with React Router.
-  - Auth context, responsive application shell, login page with 1-click test helpers.
+  - Auth context, responsive application shell, login page.
   - Role-guarded routes (Admin Dashboard vs Staff POS view vs Unauthorized prompt).
   - Admin staff account management (create staff, toggle status, safety guards).
   - Automated test suite passing 18/18 checks.
-- [ ] **PHASE 2: Product & Category Management** *(Awaiting Approval)*
-- [ ] **PHASE 3: Inventory Ledger & Stock Control**
+- [x] **PHASE 2: Product & Category Management (COMPLETED & VERIFIED)**
+  - Product model with integer paise pricing and price snapshot history.
+  - Decimal quantity validation for loose items (`kg`, `g`, `L`, `ml`).
+  - Integer quantity validation for discrete units (`piece`, `packet`).
+  - Barcode uniqueness and fast barcode scanner lookup endpoint.
+  - Category model with product count aggregation & deletion safety checks.
+  - Product listing table with search, category filters, unit filters, low-stock filter.
+  - Add & Edit Product modals with real-time margin and MRP checks.
+  - RFC-4180 CSV parser, template generator, dry-run validation, and batch product importer.
+  - Role permissions: Staff can search/view catalog; Admin only can create, edit, deactivate, or import products.
+  - Automated test suite passing 21/21 checks (total 39/39 passing).
+- [ ] **PHASE 3: Inventory Ledger & Stock Control** *(Next Phase)*
 - [ ] **PHASE 4: POS Billing & Invoicing**
 - [ ] **PHASE 5: Customers, Udhaar & Purchases**
 - [ ] **PHASE 6: Analytics & Financial Reports**

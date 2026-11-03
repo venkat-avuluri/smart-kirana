@@ -23,13 +23,29 @@ export const DashboardPage = () => {
   const { user } = useAuth();
   const [healthStatus, setHealthStatus] = useState(null);
   const [isLoadingHealth, setIsLoadingHealth] = useState(true);
+  const [catalogStats, setCatalogStats] = useState({
+    totalProducts: 0,
+    lowStockCount: 0,
+    totalCategories: 0,
+  });
 
-  // Load real server and DB health
+  // Load real server health and catalog statistics
   useEffect(() => {
-    const fetchHealth = async () => {
+    const fetchData = async () => {
       try {
-        const { data } = await api.get('/health', { baseURL: '/api' });
-        setHealthStatus(data);
+        const [healthRes, prodRes, lowStockRes, catRes] = await Promise.all([
+          api.get('/health', { baseURL: '/api' }),
+          api.get('/products?limit=1'),
+          api.get('/products?lowStock=true&limit=1'),
+          api.get('/categories'),
+        ]);
+
+        setHealthStatus(healthRes.data);
+        setCatalogStats({
+          totalProducts: prodRes.data.total || 0,
+          lowStockCount: lowStockRes.data.total || 0,
+          totalCategories: catRes.data.count || 0,
+        });
       } catch (err) {
         setHealthStatus({ success: false, message: 'Server unreachable' });
       } finally {
@@ -37,7 +53,7 @@ export const DashboardPage = () => {
       }
     };
 
-    fetchHealth();
+    fetchData();
   }, []);
 
   return (
@@ -197,7 +213,7 @@ export const DashboardPage = () => {
                 <AlertTriangle className="w-4 h-4" />
               </div>
             </div>
-            <p className="text-2xl font-black text-slate-900">0 items</p>
+            <p className="text-2xl font-black text-rose-600">{catalogStats.lowStockCount} items</p>
             <p className="text-[11px] text-slate-400 mt-1">Below minimum threshold</p>
           </div>
 
@@ -209,8 +225,8 @@ export const DashboardPage = () => {
                 <Package className="w-4 h-4" />
               </div>
             </div>
-            <p className="text-2xl font-black text-slate-900">0 SKUs</p>
-            <p className="text-[11px] text-slate-400 mt-1">Phase 2 catalog loading</p>
+            <p className="text-2xl font-black text-slate-900">{catalogStats.totalProducts} SKUs</p>
+            <p className="text-[11px] text-slate-400 mt-1">Live store items</p>
           </div>
 
           {/* Categories */}
@@ -221,8 +237,8 @@ export const DashboardPage = () => {
                 <Layers className="w-4 h-4" />
               </div>
             </div>
-            <p className="text-2xl font-black text-slate-900">0 Active</p>
-            <p className="text-[11px] text-slate-400 mt-1">Grains, Oils, FMCG, Loose</p>
+            <p className="text-2xl font-black text-slate-900">{catalogStats.totalCategories} Active</p>
+            <p className="text-[11px] text-slate-400 mt-1">Store departments</p>
           </div>
         </div>
       </div>

@@ -5,6 +5,8 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { AppLayout } from './layouts/AppLayout';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { ProductsPage } from './pages/ProductsPage';
+import { CategoriesPage } from './pages/CategoriesPage';
 import { PosPlaceholderPage } from './pages/PosPlaceholderPage';
 import { UsersPage } from './pages/UsersPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
@@ -50,6 +52,26 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['ADMIN']}>
                   <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Products (Admin & Staff) */}
+            <Route
+              path="/products"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'STAFF']}>
+                  <ProductsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Categories (Admin & Staff) */}
+            <Route
+              path="/categories"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'STAFF']}>
+                  <CategoriesPage />
                 </ProtectedRoute>
               }
             />
