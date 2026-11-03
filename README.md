@@ -217,6 +217,18 @@ node test-phase3.js
   - Dual-format printable receipts (Standard A4 and 80mm thermal roll formats with print-optimized CSS).
   - Sales & Receipts history view with pagination, date/payment filters, receipt reprinting, return processing, and voiding.
   - Automated test suite passing 36/36 checks (total 106/106 passing across Phases 1–4).
-- [ ] **PHASE 5: Customers, Udhaar & Purchases** *(Next Phase)*
-- [ ] **PHASE 6: Analytics & Financial Reports**
+- [x] **PHASE 5: Customers, Udhaar & Purchases (COMPLETED & VERIFIED)**
+  - Customer directory with unique phone index, address, notes, and instant autocomplete search.
+  - Immutable `CustomerTransaction` credit ledger tracking credit sales, cash/UPI repayments, and void reversals.
+  - Repayment collection workflow generating sequential cash receipts (`RCP-YYYYMM-XXXX`) with overpayment boundary protection.
+  - Deep POS Udhaar integration: customer autocomplete dropdown, live credit balance preview, and automatic debt ledger postings.
+  - Automatic customer credit debt reversal upon POS bill voiding (`SALE_VOID`).
+  - Wholesale supplier/vendor management with contact details, notes, and payable ledger tracking.
+  - Multi-item purchase entry (`PUR-YYYYMM-XXXX`) with atomic inventory ledger increments (`PURCHASE`) for loose and discrete goods.
+  - Support for full payment, partial payment, and credit purchases with auditable `SupplierTransaction` payable ledger.
+  - Supplier disbursement settlements generating payment vouchers (`SPAY-YYYYMM-XXXX`).
+  - Admin-only purchase cancellation with automated inventory stock reversal (`STOCK_CORRECTION`) and supplier debt reduction.
+  - Strict RBAC: Staff can manage customers, record customer repayments, and bill on Udhaar; Staff strictly blocked from supplier costs, wholesale purchasing, and supplier disbursements (403 Forbidden).
+  - Automated test suite passing 33/33 checks (total 139/139 passing across Phases 1–5).
+- [ ] **PHASE 6: Analytics & Financial Reports** *(Next Phase)*
 - [ ] **PHASE 7: Rigorous Testing & Deployment Readiness**

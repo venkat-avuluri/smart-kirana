@@ -39,8 +39,8 @@ export const AppLayout = () => {
     { to: '/products', label: 'Products & Catalog', icon: Package },
     { to: '/categories', label: 'Categories', icon: Layers },
     { to: '/inventory', label: 'Inventory Ledger', icon: ClipboardList },
-    { to: '/customers', label: 'Customers & Udhaar', icon: Users, badge: 'Ph. 5' },
-    { to: '/purchases', label: 'Purchases & Suppliers', icon: Truck, badge: 'Ph. 5' },
+    { to: '/customers', label: 'Customers & Udhaar', icon: Users },
+    { to: '/purchases', label: 'Purchases & Suppliers', icon: Truck },
     { to: '/users', label: 'Staff Accounts', icon: UserCheck },
     { to: '/reports', label: 'Reports & Analytics', icon: BarChart3, badge: 'Ph. 6' },
   ];
@@ -50,7 +50,7 @@ export const AppLayout = () => {
     { to: '/sales-history', label: 'Sales & Receipts', icon: FileText },
     { to: '/products', label: 'Product Catalog', icon: Package },
     { to: '/inventory', label: 'Inventory Levels', icon: ClipboardList },
-    { to: '/customers', label: 'Customers & Udhaar', icon: Users, badge: 'Ph. 5' },
+    { to: '/customers', label: 'Customers & Udhaar', icon: Users },
   ];
 
   const navItems = isAdmin ? adminNav : staffNav;

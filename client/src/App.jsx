@@ -10,6 +10,8 @@ import { CategoriesPage } from './pages/CategoriesPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { PosPage } from './pages/PosPage';
 import { SalesHistoryPage } from './pages/SalesHistoryPage';
+import { CustomersPage } from './pages/CustomersPage';
+import { PurchasesPage } from './pages/PurchasesPage';
 import { UsersPage } from './pages/UsersPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
 
@@ -114,6 +116,26 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['ADMIN', 'STAFF']}>
                   <SalesHistoryPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Customers & Udhaar Credit (Admin & Staff) */}
+            <Route
+              path="/customers"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'STAFF']}>
+                  <CustomersPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Purchases & Supplier Management (Admin Only) */}
+            <Route
+              path="/purchases"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN']}>
+                  <PurchasesPage />
                 </ProtectedRoute>
               }
             />

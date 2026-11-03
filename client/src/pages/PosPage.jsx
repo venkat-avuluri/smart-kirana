@@ -43,6 +43,9 @@ export const PosPage = () => {
   const [discountRupees, setDiscountRupees] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [customerSearchQuery, setCustomerSearchQuery] = useState('');
+  const [customerSearchResults, setCustomerSearchResults] = useState([]);
   const [orderNotes, setOrderNotes] = useState('');
 
   // Payment State: 'CASH' | 'UPI' | 'SPLIT' | 'UDHAAR'
@@ -126,6 +129,27 @@ export const PosPage = () => {
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     };
   }, [searchQuery, selectedCategory]);
+
+  // Customer live search for Udhaar
+  useEffect(() => {
+    if (!customerSearchQuery.trim()) {
+      setCustomerSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.get('/customers', {
+          params: { search: customerSearchQuery.trim(), limit: 6 },
+        });
+        setCustomerSearchResults(res.data?.customers || []);
+      } catch (err) {
+        console.error('Customer search error', err);
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [customerSearchQuery]);
 
   // Handle direct Barcode Enter scan
   const handleBarcodeSubmit = async (e) => {
@@ -322,8 +346,9 @@ export const PosPage = () => {
         });
       }
     } else if (paymentMode === 'UDHAAR') {
-      if (!customerName.trim() || !customerPhone.trim()) {
-        setErrorToast('Customer Name and Contact Phone are required for Udhaar (Store Credit).');
+      const activeName = selectedCustomer ? selectedCustomer.name : customerName.trim();
+      if (!activeName) {
+        setErrorToast('Customer Name is required for Udhaar (Store Credit).');
         return;
       }
       paymentsPayload.push({
@@ -339,8 +364,9 @@ export const PosPage = () => {
       })),
       discountPaise,
       payments: paymentsPayload,
-      customerName: customerName.trim() || 'Walk-in Customer',
-      customerPhone: customerPhone.trim(),
+      customerId: selectedCustomer ? selectedCustomer._id : null,
+      customerName: selectedCustomer ? selectedCustomer.name : (customerName.trim() || 'Walk-in Customer'),
+      customerPhone: selectedCustomer && selectedCustomer.phone ? selectedCustomer.phone : customerPhone.trim(),
       notes: orderNotes.trim(),
       allowNegativeOverride: allowOverride,
       overrideReason: allowOverride ? overrideReason : '',
@@ -899,24 +925,108 @@ export const PosPage = () => {
 
               {/* MODE 4: UDHAAR / STORE CREDIT */}
               {paymentMode === 'UDHAAR' && (
-                <div className="space-y-2 text-xs">
+                <div className="space-y-2.5 text-xs">
                   <div className="p-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg flex items-center gap-1.5">
                     <Users className="w-4 h-4 text-amber-600 shrink-0" />
                     <span>This bill will be added to the customer's store credit (Udhaar) ledger.</span>
                   </div>
 
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">
-                      Customer Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Ramesh Chandra"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      className="w-full px-3 py-1.5 border border-slate-300 rounded-lg bg-white"
-                    />
-                  </div>
+                  {selectedCustomer ? (
+                    <div className="p-2.5 bg-white border border-emerald-300 rounded-lg shadow-2xs space-y-1.5">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="font-bold text-slate-900 block text-xs">{selectedCustomer.name}</span>
+                          <span className="text-[11px] text-slate-500">{selectedCustomer.phone || 'No phone recorded'}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCustomer(null)}
+                          className="text-[11px] text-slate-400 hover:text-red-600 font-semibold"
+                        >
+                          Change
+                        </button>
+                      </div>
+
+                      <div className="pt-1.5 border-t border-slate-100 flex justify-between items-center text-[11px]">
+                        <span className="text-slate-600">Current Balance:</span>
+                        <strong className="text-red-600 font-black">
+                          {formatINR(selectedCustomer.currentBalancePaise)}
+                        </strong>
+                      </div>
+
+                      <div className="flex justify-between items-center text-[11px] text-slate-700 font-medium">
+                        <span>New Balance after Bill:</span>
+                        <strong className="text-slate-900 font-bold">
+                          {formatINR(selectedCustomer.currentBalancePaise + cartCalculations.finalAmountPaise)}
+                        </strong>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <label className="block font-semibold text-slate-700 mb-1">
+                          Search Registered Customer:
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Type name or phone to search..."
+                          value={customerSearchQuery}
+                          onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                          className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white text-xs"
+                        />
+                        {customerSearchResults.length > 0 && (
+                          <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg max-h-36 overflow-y-auto divide-y divide-slate-100">
+                            {customerSearchResults.map((cust) => (
+                              <div
+                                key={cust._id}
+                                onClick={() => {
+                                  setSelectedCustomer(cust);
+                                  setCustomerSearchQuery('');
+                                  setCustomerSearchResults([]);
+                                }}
+                                className="p-2 hover:bg-emerald-50 cursor-pointer flex justify-between items-center"
+                              >
+                                <div>
+                                  <div className="font-bold text-slate-900 text-xs">{cust.name}</div>
+                                  <div className="text-[10px] text-slate-500">{cust.phone || 'No phone'}</div>
+                                </div>
+                                <span className="text-[10px] font-bold text-red-600">
+                                  {formatINR(cust.currentBalancePaise)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-1 text-center text-[10px] text-slate-400 font-semibold">
+                        — OR QUICK REGISTER NEW CUSTOMER —
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-slate-600 mb-0.5">Name *</label>
+                          <input
+                            type="text"
+                            placeholder="Customer Name"
+                            value={customerName}
+                            onChange={(e) => setCustomerName(e.target.value)}
+                            className="w-full px-2 py-1 border border-slate-300 rounded bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-slate-600 mb-0.5">Phone</label>
+                          <input
+                            type="text"
+                            placeholder="Mobile No"
+                            value={customerPhone}
+                            onChange={(e) => setCustomerPhone(e.target.value)}
+                            className="w-full px-2 py-1 border border-slate-300 rounded bg-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

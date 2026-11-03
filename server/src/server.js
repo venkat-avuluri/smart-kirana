@@ -13,6 +13,9 @@ import categoryRoutes from './routes/categoryRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import inventoryRoutes from './routes/inventoryRoutes.js';
 import posRoutes from './routes/posRoutes.js';
+import customerRoutes from './routes/customerRoutes.js';
+import supplierRoutes from './routes/supplierRoutes.js';
+import purchaseRoutes from './routes/purchaseRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -74,6 +77,9 @@ app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/inventory', inventoryRoutes);
 app.use('/api/v1/pos', posRoutes);
+app.use('/api/v1/customers', customerRoutes);
+app.use('/api/v1/suppliers', supplierRoutes);
+app.use('/api/v1/purchases', purchaseRoutes);
 
 // Catch-all 404 handler for undefined API routes
 app.use('/api', (req, res) => {

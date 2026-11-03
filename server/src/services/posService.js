@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 import Sale from '../models/Sale.js';
 import SaleReturn from '../models/SaleReturn.js';
 import Product, { LOOSE_UNITS } from '../models/Product.js';
+import Customer from '../models/Customer.js';
+import CustomerTransaction from '../models/CustomerTransaction.js';
 import { getNextInvoiceNumber, getNextReturnNumber } from '../models/Counter.js';
 import { recordStockMovement } from './inventoryService.js';
 
@@ -191,13 +193,62 @@ export const createPosSale = async ({
     throw new Error(`Inventory deduction failed: ${stockErr.message}`);
   }
 
-  // 6. Create and Save Sale Document
+  // 6. Customer Credit Ledger Integration (Udhaar)
+  let linkedCustomer = null;
+  const udhaarPayment = validatedPayments.find((p) => p.method === 'CREDIT_UDHAAR');
+
+  if (udhaarPayment) {
+    if (customerId) {
+      linkedCustomer = await Customer.findById(customerId);
+    } else if (customerPhone && customerPhone.trim()) {
+      linkedCustomer = await Customer.findOne({ phone: customerPhone.trim() });
+    }
+
+    if (!linkedCustomer && customerName.trim() && customerName.trim() !== 'Walk-in Customer') {
+      try {
+        linkedCustomer = await Customer.create({
+          name: customerName.trim(),
+          phone: customerPhone ? customerPhone.trim() : '',
+          createdBy: user._id,
+        });
+      } catch (custErr) {
+        if (customerPhone && customerPhone.trim()) {
+          linkedCustomer = await Customer.findOne({ phone: customerPhone.trim() });
+        }
+      }
+    }
+
+    if (linkedCustomer) {
+      const udhaarAmt = udhaarPayment.amountPaise;
+      const balanceBeforePaise = linkedCustomer.currentBalancePaise || 0;
+      const balanceAfterPaise = balanceBeforePaise + udhaarAmt;
+
+      await CustomerTransaction.create({
+        customer: linkedCustomer._id,
+        type: 'CREDIT_SALE',
+        amountPaise: udhaarAmt,
+        deltaPaise: udhaarAmt,
+        balanceBeforePaise,
+        balanceAfterPaise,
+        referenceId: invoiceNumber,
+        notes: `POS Credit Sale Invoice ${invoiceNumber}`,
+        recordedBy: user._id,
+      });
+
+      linkedCustomer.currentBalancePaise = balanceAfterPaise;
+      linkedCustomer.totalPurchasesCount = (linkedCustomer.totalPurchasesCount || 0) + 1;
+      linkedCustomer.totalSpentPaise = (linkedCustomer.totalSpentPaise || 0) + finalAmountPaise;
+      await linkedCustomer.save();
+    }
+  }
+
+  // 7. Create and Save Sale Document
   const sale = await Sale.create({
     invoiceNumber,
     idempotencyKey: idempotencyKey ? idempotencyKey.trim() : undefined,
-    customerName: customerName.trim() || 'Walk-in Customer',
-    customerPhone: customerPhone ? customerPhone.trim() : '',
-    customerId: customerId || null,
+    customerName: linkedCustomer ? linkedCustomer.name : (customerName.trim() || 'Walk-in Customer'),
+    customerPhone: linkedCustomer && linkedCustomer.phone ? linkedCustomer.phone : (customerPhone ? customerPhone.trim() : ''),
+    customerId: linkedCustomer ? linkedCustomer._id : (customerId || null),
     items: validatedItems,
     subtotalPaise: calculatedSubtotalPaise,
     discountPaise: cleanDiscountPaise,
@@ -253,6 +304,34 @@ export const voidSale = async ({ saleId, voidReason, user }) => {
         allowNegativeOverride: true,
         overrideReason: 'Sale void stock restoration',
       });
+    }
+  }
+
+  // Reverse Customer Credit Ledger if this was an Udhaar credit sale
+  if (sale.paymentStatus === 'UDHAAR_CREDIT' && sale.customerId) {
+    const udhaarPay = sale.payments.find((p) => p.method === 'CREDIT_UDHAAR');
+    if (udhaarPay) {
+      const customer = await Customer.findById(sale.customerId);
+      if (customer) {
+        const udhaarAmt = udhaarPay.amountPaise;
+        const balanceBeforePaise = customer.currentBalancePaise || 0;
+        const balanceAfterPaise = Math.max(0, balanceBeforePaise - udhaarAmt);
+
+        await CustomerTransaction.create({
+          customer: customer._id,
+          type: 'SALE_VOID',
+          amountPaise: udhaarAmt,
+          deltaPaise: -udhaarAmt,
+          balanceBeforePaise,
+          balanceAfterPaise,
+          referenceId: sale.invoiceNumber,
+          notes: `Voided Credit Sale ${sale.invoiceNumber}: ${voidReason.trim()}`,
+          recordedBy: user._id,
+        });
+
+        customer.currentBalancePaise = balanceAfterPaise;
+        await customer.save();
+      }
     }
   }
 
