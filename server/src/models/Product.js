@@ -153,6 +153,8 @@ productSchema.pre('save', function (next) {
 
 // Text index for search
 productSchema.index({ name: 'text', description: 'text' });
+productSchema.index({ isActive: 1, currentStock: 1 });
+productSchema.index({ category: 1, isActive: 1 });
 
 const Product = mongoose.model('Product', productSchema);
 export default Product;

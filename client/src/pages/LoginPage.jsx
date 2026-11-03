@@ -143,32 +143,30 @@ export const LoginPage = () => {
         {import.meta.env.DEV && (
           <div className="mt-6 pt-5 border-t border-slate-100">
             <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2 text-center">
-              Dev Helper: Quick Fill Username
+              Quick Select Role (Development Mode)
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => {
                   setUsername('admin');
-                  setPassword('adminpassword123');
                   setErrorMessage('');
                 }}
                 className="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold border border-slate-200 transition"
               >
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                Fill Owner (admin)
+                Select Owner (admin)
               </button>
               <button
                 type="button"
                 onClick={() => {
                   setUsername('staff');
-                  setPassword('staffpassword123');
                   setErrorMessage('');
                 }}
                 className="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold border border-slate-200 transition"
               >
                 <UserCheck className="w-3.5 h-3.5 text-blue-600" />
-                Fill Staff (staff)
+                Select Staff (staff)
               </button>
             </div>
           </div>

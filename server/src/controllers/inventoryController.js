@@ -527,10 +527,16 @@ export const getLowStockReport = async (req, res, next) => {
       Product.countDocuments(filter),
     ]);
 
+    const isStaff = req.user.role === 'STAFF';
     const enriched = items.map((p) => {
       const shortage = Math.max(0, p.minStockLevel - p.currentStock);
+      const obj = p.toObject();
+      if (isStaff) {
+        delete obj.purchasePricePaise;
+        delete obj.priceHistory;
+      }
       return {
-        ...p.toObject(),
+        ...obj,
         shortage,
         isCritical: p.currentStock <= 0,
       };

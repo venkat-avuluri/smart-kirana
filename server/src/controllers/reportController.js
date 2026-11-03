@@ -9,6 +9,19 @@ import {
   generateCustomerOutstandingCSV,
   generateSupplierPayableCSV,
 } from '../services/reportService.js';
+import { runLedgerReconciliation } from '../utils/reconcileLedgers.js';
+
+export const handleGetReconciliationReport = async (req, res, next) => {
+  try {
+    const report = await runLedgerReconciliation();
+    res.status(200).json({
+      success: true,
+      report,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const handleGetDashboardSummary = async (req, res, next) => {
   try {

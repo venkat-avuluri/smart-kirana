@@ -29,12 +29,37 @@ connectDB();
 
 // Security Middlewares
 app.use(helmet());
+
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map((o) => o.trim());
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, automated test suites)
+      if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+      }
+    },
     credentials: true,
   })
 );
+
+// General API rate limiter for DDoS and request flooding protection
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 2000, // 2000 requests per 15 minutes per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Too many requests from this network. Please retry shortly.',
+  },
+});
+app.use('/api', apiLimiter);
 
 // Request body parsers
 app.use(express.json({ limit: '1mb' }));

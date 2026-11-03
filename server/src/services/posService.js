@@ -23,6 +23,7 @@ export const createPosSale = async ({
   allowNegativeOverride = false,
   overrideReason = '',
   idempotencyKey = '',
+  simulateFailure = false,
   user,
 }) => {
   if (!Array.isArray(items) || items.length === 0) {
@@ -172,8 +173,12 @@ export const createPosSale = async ({
   // 4. Generate Unique Sequential Invoice Number
   const invoiceNumber = await getNextInvoiceNumber();
 
-  // 5. Execute Atomic Inventory Deductions through Ledger
+  // 5. Execute Atomic Inventory Deductions through Ledger with Compensating Rollback Guard
   const ledgerTransactions = [];
+  let linkedCustomer = null;
+  let customerTxCreated = false;
+  let udhaarAmtApplied = 0;
+
   try {
     for (const item of validatedItems) {
       const stockRes = await recordStockMovement({
@@ -189,82 +194,118 @@ export const createPosSale = async ({
       });
       ledgerTransactions.push(stockRes.transaction);
     }
-  } catch (stockErr) {
-    throw new Error(`Inventory deduction failed: ${stockErr.message}`);
-  }
 
-  // 6. Customer Credit Ledger Integration (Udhaar)
-  let linkedCustomer = null;
-  const udhaarPayment = validatedPayments.find((p) => p.method === 'CREDIT_UDHAAR');
+    // 6. Customer Credit Ledger Integration (Udhaar)
+    const udhaarPayment = validatedPayments.find((p) => p.method === 'CREDIT_UDHAAR');
 
-  if (udhaarPayment) {
-    if (customerId) {
-      linkedCustomer = await Customer.findById(customerId);
-    } else if (customerPhone && customerPhone.trim()) {
-      linkedCustomer = await Customer.findOne({ phone: customerPhone.trim() });
-    }
+    if (udhaarPayment) {
+      if (customerId) {
+        linkedCustomer = await Customer.findById(customerId);
+      } else if (customerPhone && customerPhone.trim()) {
+        linkedCustomer = await Customer.findOne({ phone: customerPhone.trim() });
+      }
 
-    if (!linkedCustomer && customerName.trim() && customerName.trim() !== 'Walk-in Customer') {
-      try {
-        linkedCustomer = await Customer.create({
-          name: customerName.trim(),
-          phone: customerPhone ? customerPhone.trim() : '',
-          createdBy: user._id,
-        });
-      } catch (custErr) {
-        if (customerPhone && customerPhone.trim()) {
-          linkedCustomer = await Customer.findOne({ phone: customerPhone.trim() });
+      if (!linkedCustomer && customerName.trim() && customerName.trim() !== 'Walk-in Customer') {
+        try {
+          linkedCustomer = await Customer.create({
+            name: customerName.trim(),
+            phone: customerPhone ? customerPhone.trim() : '',
+            createdBy: user._id,
+          });
+        } catch (custErr) {
+          if (customerPhone && customerPhone.trim()) {
+            linkedCustomer = await Customer.findOne({ phone: customerPhone.trim() });
+          }
         }
+      }
+
+      if (linkedCustomer) {
+        udhaarAmtApplied = udhaarPayment.amountPaise;
+        const balanceBeforePaise = linkedCustomer.currentBalancePaise || 0;
+        const balanceAfterPaise = balanceBeforePaise + udhaarAmtApplied;
+
+        await CustomerTransaction.create({
+          customer: linkedCustomer._id,
+          type: 'CREDIT_SALE',
+          amountPaise: udhaarAmtApplied,
+          deltaPaise: udhaarAmtApplied,
+          balanceBeforePaise,
+          balanceAfterPaise,
+          referenceId: invoiceNumber,
+          notes: `POS Credit Sale Invoice ${invoiceNumber}`,
+          recordedBy: user._id,
+        });
+        customerTxCreated = true;
+
+        linkedCustomer.currentBalancePaise = balanceAfterPaise;
+        linkedCustomer.totalPurchasesCount = (linkedCustomer.totalPurchasesCount || 0) + 1;
+        linkedCustomer.totalSpentPaise = (linkedCustomer.totalSpentPaise || 0) + finalAmountPaise;
+        await linkedCustomer.save();
       }
     }
 
-    if (linkedCustomer) {
-      const udhaarAmt = udhaarPayment.amountPaise;
-      const balanceBeforePaise = linkedCustomer.currentBalancePaise || 0;
-      const balanceAfterPaise = balanceBeforePaise + udhaarAmt;
-
-      await CustomerTransaction.create({
-        customer: linkedCustomer._id,
-        type: 'CREDIT_SALE',
-        amountPaise: udhaarAmt,
-        deltaPaise: udhaarAmt,
-        balanceBeforePaise,
-        balanceAfterPaise,
-        referenceId: invoiceNumber,
-        notes: `POS Credit Sale Invoice ${invoiceNumber}`,
-        recordedBy: user._id,
-      });
-
-      linkedCustomer.currentBalancePaise = balanceAfterPaise;
-      linkedCustomer.totalPurchasesCount = (linkedCustomer.totalPurchasesCount || 0) + 1;
-      linkedCustomer.totalSpentPaise = (linkedCustomer.totalSpentPaise || 0) + finalAmountPaise;
-      await linkedCustomer.save();
+    // Simulation hook for Test B: simulated DB crash or network fault
+    if (simulateFailure) {
+      throw new Error('Simulated Database Failure: write operation aborted mid-transaction');
     }
+
+    // 7. Create and Save Sale Document
+    const sale = await Sale.create({
+      invoiceNumber,
+      idempotencyKey: idempotencyKey ? idempotencyKey.trim() : undefined,
+      customerName: linkedCustomer ? linkedCustomer.name : (customerName.trim() || 'Walk-in Customer'),
+      customerPhone: linkedCustomer && linkedCustomer.phone ? linkedCustomer.phone : (customerPhone ? customerPhone.trim() : ''),
+      customerId: linkedCustomer ? linkedCustomer._id : (customerId || null),
+      items: validatedItems,
+      subtotalPaise: calculatedSubtotalPaise,
+      discountPaise: cleanDiscountPaise,
+      finalAmountPaise,
+      payments: validatedPayments,
+      paymentStatus,
+      status: 'COMPLETED',
+      billedBy: user._id,
+      notes: notes ? notes.trim() : '',
+    });
+
+    const populated = await Sale.findById(sale._id)
+      .populate('billedBy', 'name username role')
+      .populate('items.product', 'name barcodes unit category');
+
+    return { sale: populated, isIdempotentReplay: false };
+  } catch (executionErr) {
+    // AUTOMATIC COMPENSATING ROLLBACK:
+    // Reverse all deducted inventory ledger movements immediately to preserve 100% stock consistency
+    for (const tx of ledgerTransactions) {
+      try {
+        await recordStockMovement({
+          productId: tx.product,
+          type: 'STOCK_CORRECTION',
+          quantityDelta: Math.abs(tx.quantityDelta),
+          reason: `Compensating rollback: POS sale aborted (${invoiceNumber || 'FAILED'})`,
+          userId: user._id,
+          userRole: user.role,
+          referenceId: invoiceNumber || 'ROLLBACK',
+        });
+      } catch (rollbackErr) {
+        console.error('[Rollback Error] Failed to restore inventory item:', rollbackErr);
+      }
+    }
+
+    // Reverse customer balance if credit was applied
+    if (linkedCustomer && customerTxCreated) {
+      try {
+        linkedCustomer.currentBalancePaise = Math.max(0, linkedCustomer.currentBalancePaise - udhaarAmtApplied);
+        linkedCustomer.totalPurchasesCount = Math.max(0, (linkedCustomer.totalPurchasesCount || 1) - 1);
+        linkedCustomer.totalSpentPaise = Math.max(0, (linkedCustomer.totalSpentPaise || finalAmountPaise) - finalAmountPaise);
+        await linkedCustomer.save();
+        await CustomerTransaction.deleteOne({ referenceId: invoiceNumber, type: 'CREDIT_SALE' });
+      } catch (custRollbackErr) {
+        console.error('[Rollback Error] Failed to revert customer credit:', custRollbackErr);
+      }
+    }
+
+    throw executionErr;
   }
-
-  // 7. Create and Save Sale Document
-  const sale = await Sale.create({
-    invoiceNumber,
-    idempotencyKey: idempotencyKey ? idempotencyKey.trim() : undefined,
-    customerName: linkedCustomer ? linkedCustomer.name : (customerName.trim() || 'Walk-in Customer'),
-    customerPhone: linkedCustomer && linkedCustomer.phone ? linkedCustomer.phone : (customerPhone ? customerPhone.trim() : ''),
-    customerId: linkedCustomer ? linkedCustomer._id : (customerId || null),
-    items: validatedItems,
-    subtotalPaise: calculatedSubtotalPaise,
-    discountPaise: cleanDiscountPaise,
-    finalAmountPaise,
-    payments: validatedPayments,
-    paymentStatus,
-    status: 'COMPLETED',
-    billedBy: user._id,
-    notes: notes ? notes.trim() : '',
-  });
-
-  const populated = await Sale.findById(sale._id)
-    .populate('billedBy', 'name username role')
-    .populate('items.product', 'name barcodes unit category');
-
-  return { sale: populated, isIdempotentReplay: false };
 };
 
 /**

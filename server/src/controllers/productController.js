@@ -65,12 +65,20 @@ export const getProducts = async (req, res, next) => {
     const sortDirection = sortOrder === 'asc' ? 1 : -1;
     const sort = { [sortField]: sortDirection };
 
+    const isStaff = req.user.role === 'STAFF';
+
+    let productQuery = Product.find(filter)
+      .populate('category', 'name isActive')
+      .sort(sort)
+      .skip(skip)
+      .limit(limitNum);
+
+    if (isStaff) {
+      productQuery = productQuery.select('-purchasePricePaise -priceHistory');
+    }
+
     const [products, total] = await Promise.all([
-      Product.find(filter)
-        .populate('category', 'name isActive')
-        .sort(sort)
-        .skip(skip)
-        .limit(limitNum),
+      productQuery,
       Product.countDocuments(filter),
     ]);
 
@@ -99,9 +107,16 @@ export const getProducts = async (req, res, next) => {
  */
 export const getProductById = async (req, res, next) => {
   try {
-    const product = await Product.findById(req.params.id)
+    const isStaff = req.user.role === 'STAFF';
+    let query = Product.findById(req.params.id)
       .populate('category', 'name isActive')
       .populate('priceHistory.changedBy', 'name username');
+
+    if (isStaff) {
+      query = query.select('-purchasePricePaise -priceHistory');
+    }
+
+    const product = await query;
 
     if (!product) {
       return res.status(404).json({
@@ -135,10 +150,17 @@ export const getProductByBarcode = async (req, res, next) => {
     }
 
     const cleanBarcode = barcode.trim();
-    const product = await Product.findOne({
+    const isStaff = req.user.role === 'STAFF';
+    let query = Product.findOne({
       barcodes: cleanBarcode,
       isActive: true,
     }).populate('category', 'name');
+
+    if (isStaff) {
+      query = query.select('-purchasePricePaise -priceHistory');
+    }
+
+    const product = await query;
 
     if (!product) {
       return res.status(404).json({

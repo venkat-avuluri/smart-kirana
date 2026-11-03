@@ -2,6 +2,21 @@ import Sale from '../models/Sale.js';
 import SaleReturn from '../models/SaleReturn.js';
 import { createPosSale, voidSale, processSaleReturn } from '../services/posService.js';
 
+const sanitizeSaleForRole = (saleDoc, role) => {
+  if (!saleDoc) return null;
+  const obj = typeof saleDoc.toObject === 'function' ? saleDoc.toObject() : { ...saleDoc };
+  if (role === 'STAFF') {
+    if (Array.isArray(obj.items)) {
+      obj.items = obj.items.map((item) => {
+        const itemObj = typeof item.toObject === 'function' ? item.toObject() : { ...item };
+        delete itemObj.purchasePricePaise;
+        return itemObj;
+      });
+    }
+  }
+  return obj;
+};
+
 /**
  * @desc    Process POS checkout & generate invoice
  * @route   POST /api/v1/pos/checkout
@@ -20,6 +35,7 @@ export const checkout = async (req, res, next) => {
       allowNegativeOverride,
       overrideReason,
       idempotencyKey,
+      simulateFailure,
     } = req.body;
 
     const result = await createPosSale({
@@ -33,13 +49,17 @@ export const checkout = async (req, res, next) => {
       allowNegativeOverride,
       overrideReason,
       idempotencyKey,
+      simulateFailure: Boolean(simulateFailure),
       user: req.user,
     });
+
+    const sanitizedSale = sanitizeSaleForRole(result.sale, req.user.role);
 
     res.status(201).json({
       success: true,
       message: `Sale completed! Invoice ${result.sale.invoiceNumber} generated.`,
       ...result,
+      sale: sanitizedSale,
     });
   } catch (error) {
     if (error.isNegativeWarning) {
@@ -120,14 +140,16 @@ export const getSalesHistory = async (req, res, next) => {
 
     const totalPages = Math.ceil(total / limitNum) || 1;
 
+    const sanitizedSales = sales.map((s) => sanitizeSaleForRole(s, req.user.role));
+
     res.status(200).json({
       success: true,
-      count: sales.length,
+      count: sanitizedSales.length,
       total,
       page: pageNum,
       limit: limitNum,
       totalPages,
-      sales,
+      sales: sanitizedSales,
     });
   } catch (error) {
     next(error);
@@ -157,7 +179,7 @@ export const getSaleById = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      sale,
+      sale: sanitizeSaleForRole(sale, req.user.role),
       returns,
     });
   } catch (error) {
@@ -190,7 +212,7 @@ export const getSaleByInvoiceNumber = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      sale,
+      sale: sanitizeSaleForRole(sale, req.user.role),
       returns,
     });
   } catch (error) {
