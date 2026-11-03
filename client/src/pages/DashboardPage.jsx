@@ -29,15 +29,18 @@ export const DashboardPage = () => {
     totalCategories: 0,
   });
 
-  // Load real server health and catalog statistics
+  const [reportSummary, setReportSummary] = useState(null);
+
+  // Load real server health, catalog statistics and today's financial summary
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [healthRes, prodRes, lowStockRes, catRes] = await Promise.all([
+        const [healthRes, prodRes, lowStockRes, catRes, reportRes] = await Promise.all([
           api.get('/health', { baseURL: '/api' }),
           api.get('/products?limit=1'),
           api.get('/products?lowStock=true&limit=1'),
           api.get('/categories'),
+          api.get('/reports/dashboard?range=today').catch(() => ({ data: { summary: null } })),
         ]);
 
         setHealthStatus(healthRes.data);
@@ -46,6 +49,9 @@ export const DashboardPage = () => {
           lowStockCount: lowStockRes.data.total || 0,
           totalCategories: catRes.data.count || 0,
         });
+        if (reportRes?.data?.summary) {
+          setReportSummary(reportRes.data.summary);
+        }
       } catch (err) {
         setHealthStatus({ success: false, message: 'Server unreachable' });
       } finally {
@@ -141,20 +147,33 @@ export const DashboardPage = () => {
 
       {/* Real Retail KPI Metrics Grid */}
       <div>
-        <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">
-          Today's Retail Summary
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
+            Today's Retail Summary
+          </h2>
+          <NavLink
+            to="/reports"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700"
+          >
+            <span>Open Intelligence Dashboard</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </NavLink>
+        </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Today's Sales */}
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-slate-500">Today's Total Sales</span>
+              <span className="text-xs font-medium text-slate-500">Today's Net Sales</span>
               <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
                 <TrendingUp className="w-4 h-4" />
               </div>
             </div>
-            <p className="text-2xl font-black text-slate-900">{formatINR(0)}</p>
-            <p className="text-[11px] text-slate-400 mt-1">Ready for Phase 4 POS billing</p>
+            <p className="text-2xl font-black text-slate-900">
+              {formatINR(reportSummary?.netSalesRevenuePaise || 0)}
+            </p>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Gross Profit: {formatINR(reportSummary?.grossProfitPaise || 0)} ({reportSummary?.grossProfitMarginPct || 0}%)
+            </p>
           </div>
 
           {/* Bills Generated */}
@@ -165,8 +184,12 @@ export const DashboardPage = () => {
                 <Receipt className="w-4 h-4" />
               </div>
             </div>
-            <p className="text-2xl font-black text-slate-900">0 bills</p>
-            <p className="text-[11px] text-slate-400 mt-1">Sequential invoice numbering</p>
+            <p className="text-2xl font-black text-slate-900">
+              {reportSummary?.totalBills || 0} bills
+            </p>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Avg: {formatINR(reportSummary?.averageBillValuePaise || 0)}
+            </p>
           </div>
 
           {/* Cash Sales */}
@@ -177,7 +200,9 @@ export const DashboardPage = () => {
                 <Banknote className="w-4 h-4" />
               </div>
             </div>
-            <p className="text-2xl font-black text-slate-900">{formatINR(0)}</p>
+            <p className="text-2xl font-black text-slate-900">
+              {formatINR(reportSummary?.cashCollectionsPaise || 0)}
+            </p>
             <p className="text-[11px] text-slate-400 mt-1">Direct register cash intake</p>
           </div>
 
@@ -189,7 +214,9 @@ export const DashboardPage = () => {
                 <Smartphone className="w-4 h-4" />
               </div>
             </div>
-            <p className="text-2xl font-black text-slate-900">{formatINR(0)}</p>
+            <p className="text-2xl font-black text-slate-900">
+              {formatINR(reportSummary?.upiCollectionsPaise || 0)}
+            </p>
             <p className="text-[11px] text-slate-400 mt-1">Digital QR payments</p>
           </div>
 
@@ -201,7 +228,9 @@ export const DashboardPage = () => {
                 <Users className="w-4 h-4" />
               </div>
             </div>
-            <p className="text-2xl font-black text-amber-600">{formatINR(0)}</p>
+            <p className="text-2xl font-black text-amber-600">
+              {formatINR(reportSummary?.customerOutstandingPaise || 0)}
+            </p>
             <p className="text-[11px] text-slate-400 mt-1">Outstanding customer credit</p>
           </div>
 
@@ -213,7 +242,9 @@ export const DashboardPage = () => {
                 <AlertTriangle className="w-4 h-4" />
               </div>
             </div>
-            <p className="text-2xl font-black text-rose-600">{catalogStats.lowStockCount} items</p>
+            <p className="text-2xl font-black text-rose-600">
+              {reportSummary?.lowStockCount !== undefined ? reportSummary.lowStockCount : catalogStats.lowStockCount} items
+            </p>
             <p className="text-[11px] text-slate-400 mt-1">Below minimum threshold</p>
           </div>
 
@@ -226,7 +257,9 @@ export const DashboardPage = () => {
               </div>
             </div>
             <p className="text-2xl font-black text-slate-900">{catalogStats.totalProducts} SKUs</p>
-            <p className="text-[11px] text-slate-400 mt-1">Live store items</p>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Valuation: {formatINR(reportSummary?.inventoryValuationPaise || 0)}
+            </p>
           </div>
 
           {/* Categories */}

@@ -42,7 +42,7 @@ export const AppLayout = () => {
     { to: '/customers', label: 'Customers & Udhaar', icon: Users },
     { to: '/purchases', label: 'Purchases & Suppliers', icon: Truck },
     { to: '/users', label: 'Staff Accounts', icon: UserCheck },
-    { to: '/reports', label: 'Reports & Analytics', icon: BarChart3, badge: 'Ph. 6' },
+    { to: '/reports', label: 'Reports & Analytics', icon: BarChart3 },
   ];
 
   const staffNav = [

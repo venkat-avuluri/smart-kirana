@@ -12,6 +12,7 @@ import { PosPage } from './pages/PosPage';
 import { SalesHistoryPage } from './pages/SalesHistoryPage';
 import { CustomersPage } from './pages/CustomersPage';
 import { PurchasesPage } from './pages/PurchasesPage';
+import { ReportsPage } from './pages/ReportsPage';
 import { UsersPage } from './pages/UsersPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
 
@@ -136,6 +137,16 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['ADMIN']}>
                   <PurchasesPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Business Reports & Analytics Dashboard (Admin Only) */}
+            <Route
+              path="/reports"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN']}>
+                  <ReportsPage />
                 </ProtectedRoute>
               }
             />
