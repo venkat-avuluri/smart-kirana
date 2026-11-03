@@ -73,10 +73,10 @@ export const recordStockMovement = async ({
     }
   }
 
-  // Negative Stock Handling
+  // Negative Stock Handling: only warn/block when transaction is reducing stock (cleanDelta < 0)
   let isNegativeOverride = false;
   if (calculatedNewStock < 0) {
-    if (!allowNegativeOverride) {
+    if (cleanDelta < 0 && !allowNegativeOverride) {
       const error = new Error(
         `Insufficient stock! Transaction would reduce '${product.name}' stock to ${calculatedNewStock} ${product.unit}. Authorized override required.`
       );
@@ -89,7 +89,7 @@ export const recordStockMovement = async ({
       throw error;
     }
 
-    // Negative stock authorized
+    // Negative stock authorized or stock being replenished towards zero
     isNegativeOverride = true;
   }
 

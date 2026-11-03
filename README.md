@@ -203,7 +203,20 @@ node test-phase3.js
   - Store inventory valuation strictly calculated at purchase cost (`Sum(currentStock * purchasePricePaise)`).
   - Low-stock shortage alert center with 1-click restock actions.
   - Automated test suite passing 31/31 checks (total 70/70 passing across all suites).
-- [ ] **PHASE 4: POS Billing & Invoicing** *(Next Phase)*
-- [ ] **PHASE 5: Customers, Udhaar & Purchases**
+- [x] **PHASE 4: POS Billing & Invoicing (COMPLETED & VERIFIED)**
+  - Dedicated full-screen POS counter workspace (keyboard-first, `F2` search focus, auto-increment on repeated barcode scans).
+  - Server-side price recalculation strictly enforcing database integer paise integrity (never trusts client price tampering).
+  - Sequential unique invoice numbering (`SK-YYYYMM-XXXX`) and return voucher numbering (`RET-YYYYMM-XXXX`) without collisions.
+  - Decimal quantities for loose provisions (`kg`, `g`, `L`, `ml`) with quick weight chips (`250g`, `500g`, `1kg`) and discrete integer enforcement.
+  - Multi-payment support: Cash (quick denomination chips, tendered & live change calculator), UPI (with reference/UTR code), Split payment (Cash + UPI), and Udhaar store credit.
+  - Atomic inventory deduction integrated into the immutable ledger (`type: 'SALE'`).
+  - Non-blocking negative stock warning modal with cashier override authorization protocol and audit trail.
+  - Idempotency protection preventing accidental duplicate billing on network retries.
+  - Invoice voiding/cancellation (Admin only) with mandatory reason and automated stock restoration via ledger (`STOCK_CORRECTION`).
+  - Sales returns (partial or full) with sold-quantity bounds validation and stock restoration (`SALE_RETURN`).
+  - Dual-format printable receipts (Standard A4 and 80mm thermal roll formats with print-optimized CSS).
+  - Sales & Receipts history view with pagination, date/payment filters, receipt reprinting, return processing, and voiding.
+  - Automated test suite passing 36/36 checks (total 106/106 passing across Phases 1–4).
+- [ ] **PHASE 5: Customers, Udhaar & Purchases** *(Next Phase)*
 - [ ] **PHASE 6: Analytics & Financial Reports**
 - [ ] **PHASE 7: Rigorous Testing & Deployment Readiness**

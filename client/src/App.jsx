@@ -8,7 +8,8 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { InventoryPage } from './pages/InventoryPage';
-import { PosPlaceholderPage } from './pages/PosPlaceholderPage';
+import { PosPage } from './pages/PosPage';
+import { SalesHistoryPage } from './pages/SalesHistoryPage';
 import { UsersPage } from './pages/UsersPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
 
@@ -102,7 +103,17 @@ function App() {
               path="/pos"
               element={
                 <ProtectedRoute allowedRoles={['ADMIN', 'STAFF']}>
-                  <PosPlaceholderPage />
+                  <PosPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Sales & Receipts History (Admin & Staff) */}
+            <Route
+              path="/sales-history"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'STAFF']}>
+                  <SalesHistoryPage />
                 </ProtectedRoute>
               }
             />

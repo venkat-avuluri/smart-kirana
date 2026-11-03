@@ -17,6 +17,7 @@ import {
   Store,
   ShieldCheck,
   User as UserIcon,
+  FileText,
 } from 'lucide-react';
 
 export const AppLayout = () => {
@@ -34,6 +35,7 @@ export const AppLayout = () => {
   const adminNav = [
     { to: '/dashboard', label: 'Admin Dashboard', icon: LayoutDashboard },
     { to: '/pos', label: 'POS Billing', icon: ShoppingCart },
+    { to: '/sales-history', label: 'Sales & Receipts', icon: FileText },
     { to: '/products', label: 'Products & Catalog', icon: Package },
     { to: '/categories', label: 'Categories', icon: Layers },
     { to: '/inventory', label: 'Inventory Ledger', icon: ClipboardList },
@@ -45,10 +47,10 @@ export const AppLayout = () => {
 
   const staffNav = [
     { to: '/pos', label: 'POS Billing', icon: ShoppingCart },
+    { to: '/sales-history', label: 'Sales & Receipts', icon: FileText },
     { to: '/products', label: 'Product Catalog', icon: Package },
     { to: '/inventory', label: 'Inventory Levels', icon: ClipboardList },
     { to: '/customers', label: 'Customers & Udhaar', icon: Users, badge: 'Ph. 5' },
-    { to: '/sales-history', label: 'Billing History', icon: ClipboardList, badge: 'Ph. 4' },
   ];
 
   const navItems = isAdmin ? adminNav : staffNav;
