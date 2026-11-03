@@ -7,6 +7,7 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { CategoriesPage } from './pages/CategoriesPage';
+import { InventoryPage } from './pages/InventoryPage';
 import { PosPlaceholderPage } from './pages/PosPlaceholderPage';
 import { UsersPage } from './pages/UsersPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
@@ -72,6 +73,16 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['ADMIN', 'STAFF']}>
                   <CategoriesPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Inventory Ledger & Control (Admin & Staff) */}
+            <Route
+              path="/inventory"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'STAFF']}>
+                  <InventoryPage />
                 </ProtectedRoute>
               }
             />

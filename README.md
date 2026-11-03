@@ -145,6 +145,9 @@ node test-phase1.js
 
 # Run Phase 2 Product & Category tests (21 assertions)
 node test-phase2.js
+
+# Run Phase 3 Inventory Ledger & Stock tests (31 assertions)
+node test-phase3.js
 ```
 
 ---
@@ -187,9 +190,20 @@ node test-phase2.js
   - Add & Edit Product modals with real-time margin and MRP checks.
   - RFC-4180 CSV parser, template generator, dry-run validation, and batch product importer.
   - Role permissions: Staff can search/view catalog; Admin only can create, edit, deactivate, or import products.
-  - Automated test suite passing 21/21 checks (total 39/39 passing).
-- [ ] **PHASE 3: Inventory Ledger & Stock Control** *(Next Phase)*
-- [ ] **PHASE 4: POS Billing & Invoicing**
+  - Automated test suite passing 21/21 checks.
+- [x] **PHASE 3: Inventory Ledger & Stock Control (COMPLETED & VERIFIED)**
+  - Immutable `InventoryTransaction` ledger schema with strict pre-save immutability protection.
+  - Atomic stock movement engine (`recordStockMovement`) synchronizing ledger source of truth with cached product stock.
+  - Stock-In receipt workflow for purchases.
+  - Controlled Stock-Out workflow for damage, wastage, and manual deductions.
+  - Initial shop opening stock workflow with duplicate opening stock prevention.
+  - Bulk CSV opening stock import with dry-run validation preview.
+  - Manual stock adjustments (target count vs relative delta).
+  - Non-blocking negative stock alert with authorization override protocol and audit logging.
+  - Store inventory valuation strictly calculated at purchase cost (`Sum(currentStock * purchasePricePaise)`).
+  - Low-stock shortage alert center with 1-click restock actions.
+  - Automated test suite passing 31/31 checks (total 70/70 passing across all suites).
+- [ ] **PHASE 4: POS Billing & Invoicing** *(Next Phase)*
 - [ ] **PHASE 5: Customers, Udhaar & Purchases**
 - [ ] **PHASE 6: Analytics & Financial Reports**
 - [ ] **PHASE 7: Rigorous Testing & Deployment Readiness**
